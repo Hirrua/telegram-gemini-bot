@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,8 +12,10 @@
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@langchain/google-genai": "^1.0.2",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
+    "langchain": "^1.0.6",
     "node-telegram-bot-api": "^0.66.0"
   }
 }
