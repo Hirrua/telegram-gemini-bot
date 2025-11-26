@@ -1,7 +1,15 @@
-const TelegramBot = require('node-telegram-bot-api')
-const { askGemini, processFileWithGemini, deleteChatSession } = require('./gemini')
+import TelegramBot from 'node-telegram-bot-api';
+import { askGemini, processFileWithGemini, deleteChatSession } from './gemini.js';
 
-const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true })
+const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { 
+  polling: true,
+  request: {
+    agentOptions: {
+      keepAlive: true,
+      family: 4 
+    }
+  }
+})
 
 /**
  * Processa mensagens com arquivos PDF.
@@ -14,16 +22,16 @@ async function processPdfMessage(msg) {
     await bot.sendChatAction(chatId, 'typing')
 
     const fileId = document.file_id
-    // Prompt padrão, mas pode ser ajustado
-    const prompt = `Este arquivo é um receituário em PDF. 
-Extraia o texto usando OCR, descreva os itens da prescrição e pergunte ao usuário o que deseja saber sobre a receita.`
+
+    const prompt = `Este arquivo é um receituário em PDF.
+                    Extraia somente os medicamentos usando OCR, descreva os itens da prescrição e pergunte ao usuário o que deseja saber sobre a receita.
+                    Não inclua informações sobre o paciente ou o médico, foque apenas nos medicamentos prescritos.
+                    Mantenha a resposta focada no tema de receituários.`
 
     const fileLink = await bot.getFileLink(fileId)
-    const response = await fetch(fileLink)
-    const arrayBuffer = await response.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    
-    const resposta = await processFileWithGemini(buffer, "application/pdf", prompt)
+    const buffer = await downloadFileWithRetry(fileLink, 3, 60000) // 60s timeout para PDFs maiores
+
+    const resposta = await processFileWithGemini(buffer, "application/pdf", prompt, chatId)
     return bot.sendMessage(chatId, resposta)
 
   } catch (error) {
@@ -32,9 +40,40 @@ Extraia o texto usando OCR, descreva os itens da prescrição e pergunte ao usu�
   }
 }
 
-/**
- * Processa mensagens com fotos/imagens.
- */
+async function downloadFileWithRetry(fileLink, maxRetries = 3, timeout = 30000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
+
+      const response = await fetch(fileLink, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'TelegramBot/1.0'
+        }
+      })
+
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const arrayBuffer = await response.arrayBuffer()
+      return Buffer.from(arrayBuffer)
+
+    } catch (error) {
+      console.error(`Tentativa ${attempt} falhou:`, error.message)
+
+      if (attempt === maxRetries) {
+        throw error
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt))
+    }
+  }
+}
+
 async function processPhotoMessage(msg) {
   const chatId = msg.chat.id
 
@@ -44,20 +83,18 @@ async function processPhotoMessage(msg) {
     const caption = msg.caption || "Qual é o conteúdo desta imagem?"
 
     const fileLink = await bot.getFileLink(fileId)
-    const response = await fetch(fileLink)
-    const arrayBuffer = await response.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    const buffer = await downloadFileWithRetry(fileLink)
 
-    let mimeType = 'image/jpeg' 
+    let mimeType = 'image/jpeg'
     if (photo.mime_type) {
       mimeType = photo.mime_type
-    } else if (photo.width < 1000) { 
-      mimeType = 'image/png' 
+    } else if (photo.width < 1000) {
+      mimeType = 'image/png'
     }
-    
+
     const prompt = `Analise esta imagem, que é um receituário. Responda à pergunta: "${caption}". Se a pergunta for genérica, descreva o que você conseguiu ler da receita (use OCR) e pergunte o que o usuário deseja saber. Mantenha a resposta focada no tema de receituários.`
-    
-    const resposta = await processFileWithGemini(buffer, mimeType, prompt)
+
+    const resposta = await processFileWithGemini(buffer, mimeType, prompt, chatId)
     return bot.sendMessage(chatId, resposta)
 
   } catch (error) {
@@ -69,7 +106,7 @@ async function processPhotoMessage(msg) {
 bot.on('message', async (msg) => {
   const chatId = msg.chat.id
   const userText = msg.text
-  
+
   if (!userText && !msg.photo && !msg.document) {
     if (msg.sticker || msg.video || msg.animation || msg.document?.mime_type !== "application/pdf") {
       return bot.sendMessage(chatId, "Desculpe, só consigo processar texto, imagens e pdf de receituário.")
@@ -92,19 +129,15 @@ bot.on('message', async (msg) => {
   }
   else if (msg.photo) {
     return processPhotoMessage(msg)
-  } 
+  }
   else if (userText) {
     resposta = await askGemini(userText, chatId)
-  } 
+  }
 
   if (resposta.trim().length > 0) {
     bot.sendMessage(chatId, resposta)
   }
 })
 
-function startBot() {
-}
-
-module.exports = {
-  startBot
+export function startBot() {
 }
