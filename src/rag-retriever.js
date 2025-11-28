@@ -15,7 +15,7 @@ export async function retrieveRelevantContext(query) {
         content,
         metadata,
         1 - (embedding <=> $1::vector) AS similarity
-       FROM embeddings
+       FROM "Embedding"
        WHERE 1 - (embedding <=> $1::vector) >= $2
        ORDER BY embedding <=> $1::vector
        LIMIT $3`,

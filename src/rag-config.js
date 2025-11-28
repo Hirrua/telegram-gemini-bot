@@ -8,11 +8,11 @@ const { Pool } = pg;
 const EMBEDDING_DIMENSION = 768;
 
 const pool = new Pool({
-  host: 'localhost',
-  port: 5433,
-  database: 'medicoaqui',
-  user: 'postgres',
-  password: 'senha_docker',
+  host: process.env.POSTGRES_HOST || 'localhost',
+  port: parseInt(process.env.POSTGRES_PORT || '5433'),
+  database: process.env.POSTGRES_DB || 'telegram_bot',
+  user: process.env.POSTGRES_USER || 'telegram_bot',
+  password: process.env.POSTGRES_PASSWORD || 'telegram_bot_password',
 });
 
 export function getEmbeddingModel() {
@@ -27,13 +27,13 @@ export async function getPgVectorStore() {
 
   const config = {
     postgresConnectionOptions: {
-      host: 'localhost',
-      port: 5433,
-      database: 'medicoaqui',
-      user: 'postgres',
-      password: 'senha_docker',
+      host: process.env.POSTGRES_HOST || 'localhost',
+      port: parseInt(process.env.POSTGRES_PORT || '5433'),
+      database: process.env.POSTGRES_DB || 'telegram_bot',
+      user: process.env.POSTGRES_USER || 'telegram_bot',
+      password: process.env.POSTGRES_PASSWORD || 'telegram_bot_password',
     },
-    tableName: 'embeddings',
+    tableName: 'Embedding',
     columns: {
       idColumnName: 'id',
       vectorColumnName: 'embedding',
@@ -58,18 +58,8 @@ export async function initializeDatabase() {
     await client.query('CREATE EXTENSION IF NOT EXISTS vector');
 
     await client.query(`
-      CREATE TABLE IF NOT EXISTS embeddings (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        content TEXT NOT NULL,
-        metadata JSONB,
-        embedding vector(${EMBEDDING_DIMENSION}),
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )
-    `);
-
-    await client.query(`
-      CREATE INDEX IF NOT EXISTS embeddings_embedding_idx
-      ON embeddings
+      CREATE INDEX IF NOT EXISTS embedding_vector_idx
+      ON "Embedding"
       USING hnsw (embedding vector_cosine_ops)
     `);
 

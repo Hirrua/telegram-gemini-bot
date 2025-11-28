@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { randomUUID } from 'crypto';
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { getEmbeddingModel, getDocumentSplitter, pool, initializeDatabase } from './rag-config.js';
 
@@ -20,7 +21,7 @@ async function isDocumentAlreadyIngested(medicamento, contentHash) {
   const client = await pool.connect();
   try {
     const result = await client.query(
-      `SELECT COUNT(*) FROM embeddings
+      `SELECT COUNT(*) FROM "Embedding"
        WHERE metadata->>'medicamento' = $1
        AND metadata->>'content_hash' = $2`,
       [medicamento, contentHash]
@@ -63,9 +64,9 @@ async function ingestDocument(filePath, medicamento) {
         };
 
         await client.query(
-          `INSERT INTO embeddings (content, metadata, embedding)
-           VALUES ($1, $2, $3)`,
-          [doc.pageContent, JSON.stringify(metadata), JSON.stringify(embedding)]
+          `INSERT INTO "Embedding" (id, content, metadata, embedding)
+           VALUES ($1, $2, $3, $4)`,
+          [randomUUID(), doc.pageContent, JSON.stringify(metadata), JSON.stringify(embedding)]
         );
       }
 
