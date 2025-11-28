@@ -1,6 +1,6 @@
+import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
-import { loadChatHistory, saveChatMessage, deleteChatHistory as deleteHistory } from './memory.js';
+import { loadChatHistory, saveChatMessage } from './memory.js';
 
 const model = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
@@ -122,4 +122,13 @@ export async function processFileWithGemini(buffer, mimeType, prompt, chatId) {
     console.error("Erro ao processar arquivo com Gemini (LangChain):", error);
     return "Desculpe, ocorreu um erro ao processar o arquivo.";
   }
+}
+
+
+/**
+ * Remove a sessão de chat (histórico) para um determinado chatId.
+ * @param {number} chatId O ID do chat.
+ */
+export async function deleteChatSession(chatId) {
+  delete chatSessions[chatId]
 }

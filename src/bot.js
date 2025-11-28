@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { askGemini, processFileWithGemini, deleteChatSession } from './gemini.js';
+import { askGemini, deleteChatSession, processFileWithGemini } from './gemini.js';
 
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { 
   polling: true,

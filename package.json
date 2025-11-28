@@ -8,7 +8,13 @@
     "start": "node index.js",
     "dev": "node --watch index.js"
   },
-  "keywords": ["telegram", "bot", "medical", "gemini", "ai"],
+  "keywords": [
+    "telegram",
+    "bot",
+    "medical",
+    "gemini",
+    "ai"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -20,5 +26,9 @@
     "langchain": "^1.0.6",
     "node-telegram-bot-api": "^0.66.0",
     "prisma": "^5.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
   }
 }

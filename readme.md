@@ -44,7 +44,7 @@ Você pode fazer uma cópia a partir do `.env.example` e preencher as chaves
     $ docker-compose -f docker-compose.yml up
     ```
 
-#### Executando migrações e comandos com docker:
+#### Executando comandos com docker:
 Caso você precise executar alguma coisa e esteja utilizando docker, você precisará entrar no container:
 ```sh
 $ docker exec -it telegram-bot-postgres bash
