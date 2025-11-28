@@ -19,18 +19,22 @@ services:
       start_period: 30s
 
   prisma-migrate:
-    image: telegram-gemini-bot-telegram-bot-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     depends_on:
       postgres:
-        condition: service_healthy 
+        condition: service_healthy
     env_file:
       - .env
     command: npx prisma migrate deploy
-    restart: "no" 
+    restart: "no"
 
   telegram-bot-app:
-    build: 
+    build:
       context: .
+      dockerfile: Dockerfile
+    image: telegram-gemini-bot-telegram-bot-app
     container_name: telegram-bot-app
     restart: unless-stopped
     env_file:
