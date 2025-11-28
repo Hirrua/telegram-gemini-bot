@@ -26,9 +26,19 @@ model Message {
   chatSession    ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
   role           String      // "system", "human", "ai"
   content        String      @db.Text
-  metadata       Json?       
+  metadata       Json?
   createdAt      DateTime    @default(now())
 
   @@index([chatSessionId])
+  @@index([createdAt])
+}
+
+model Embedding {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  metadata  Json?
+  embedding Unsupported("vector(768)")?
+  createdAt DateTime @default(now())
+
   @@index([createdAt])
 }

@@ -6,19 +6,31 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "ingest": "node src/ingest-documents.js"
   },
-  "keywords": ["telegram", "bot", "medical", "gemini", "ai"],
+  "keywords": [
+    "telegram",
+    "bot",
+    "medical",
+    "gemini",
+    "ai"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@langchain/community": "^1.0.5",
+    "@langchain/core": "^1.1.0",
     "@langchain/google-genai": "^1.0.2",
+    "@langchain/textsplitters": "^1.0.1",
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
     "langchain": "^1.0.6",
     "node-telegram-bot-api": "^0.66.0",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.16.3",
     "prisma": "^5.22.0"
   }
 }

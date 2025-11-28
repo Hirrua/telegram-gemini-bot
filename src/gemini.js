@@ -1,10 +1,12 @@
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
-import { loadChatHistory, saveChatMessage, deleteChatHistory as deleteHistory } from './memory.js';
+import { loadChatHistory, saveChatMessage } from './memory.js';
+import { retrieveRelevantContext, formatContextForPrompt } from './rag-retriever.js';
 
 const model = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   maxOutputTokens: 2048,
+  temperature: 0.7,
   apiKey: process.env.GEMINI_API_KEY,
 });
 
@@ -54,13 +56,21 @@ export async function askGemini(prompt, chatId) {
       await saveChatMessage(chatId, 'system', SYSTEM_PROMPT);
     }
 
-    messages.push(new HumanMessage(prompt));
+    const relevantContext = await retrieveRelevantContext(prompt);
+    const contextText = formatContextForPrompt(relevantContext);
+
+    let enrichedPrompt = prompt;
+    if (contextText) {
+      enrichedPrompt = `${prompt}${contextText}\n\nUtilize o contexto acima das bulas da ANVISA para responder com precisão.`;
+    }
+
+    messages.push(new HumanMessage(enrichedPrompt));
     await saveChatMessage(chatId, 'human', prompt);
 
     const response = await model.invoke(messages);
     const responseText = response.content;
 
-    // Salva a resposta da IA
+    await saveChatMessage(chatId, 'ai', responseText);
 
     return responseText;
 
