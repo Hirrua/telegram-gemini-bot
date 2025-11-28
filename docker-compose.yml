@@ -1,7 +1,7 @@
 services:
   postgres:
-    image: postgres:16-alpine
-    container_name: telegram-bot-postgres
+    image: pgvector/pgvector:pg15
+    container_name: pg-vector-medicoaqui
     restart: unless-stopped
     environment:
       POSTGRES_USER: telegram_bot
@@ -10,14 +10,13 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U telegram_bot"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medicoaqui"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
-
+  
   prisma-migrate:
     build:
       context: .
@@ -45,6 +44,16 @@ services:
       prisma-migrate:
         condition: service_completed_successfully
 
+  adminer:
+    image: adminer
+    container_name: adminer-medicoaqui
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
-  postgres_data:
+  pg_data:
     driver: local

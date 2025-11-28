@@ -1,3 +1,6 @@
+-- Enable pgvector extension
+CREATE EXTENSION IF NOT EXISTS vector;
+
 -- CreateTable
 CREATE TABLE "ChatSession" (
     "id" TEXT NOT NULL,
@@ -20,6 +23,17 @@ CREATE TABLE "Message" (
     CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Embedding" (
+    "id" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "metadata" JSONB,
+    "embedding" vector(768),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Embedding_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "ChatSession_chatId_key" ON "ChatSession"("chatId");
 
@@ -31,6 +45,9 @@ CREATE INDEX "Message_chatSessionId_idx" ON "Message"("chatSessionId");
 
 -- CreateIndex
 CREATE INDEX "Message_createdAt_idx" ON "Message"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "Embedding_createdAt_idx" ON "Embedding"("createdAt");
 
 -- AddForeignKey
 ALTER TABLE "Message" ADD CONSTRAINT "Message_chatSessionId_fkey" FOREIGN KEY ("chatSessionId") REFERENCES "ChatSession"("id") ON DELETE CASCADE ON UPDATE CASCADE;
