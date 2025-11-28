@@ -1,5 +1,5 @@
+import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { getPrisma } from './database.js';
-import { HumanMessage, SystemMessage, AIMessage } from "@langchain/core/messages";
 
 export async function loadChatHistory(chatId) {
   try {
