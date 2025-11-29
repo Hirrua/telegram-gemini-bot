@@ -8,7 +8,8 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "ingest": "node -r dotenv/config src/ingest-documents.js dotenv_config_path=.env.local",
-    "ingest:docker": "node src/ingest-documents.js"
+    "ingest:docker": "node src/ingest-documents.js",
+    "inspector": "DOTENV_CONFIG_PATH=.env.local npx @modelcontextprotocol/inspector $(which node) src/mcp-server/index.js"
   },
   "keywords": [
     "telegram",
@@ -25,6 +26,7 @@
     "@langchain/core": "^1.1.0",
     "@langchain/google-genai": "^1.0.2",
     "@langchain/textsplitters": "^1.0.1",
+    "@modelcontextprotocol/sdk": "^1.23.0",
     "@prisma/client": "^5.22.0",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
