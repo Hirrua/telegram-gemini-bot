@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { loadChatHistory, saveChatMessage } from './memory.js';
-import { retrieveRelevantContext, formatContextForPrompt } from './rag-retriever.js';
+import { getMCPClient } from './mcp-client.js';
 
 const model = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
@@ -13,6 +13,14 @@ const model = new ChatGoogleGenerativeAI({
 const SYSTEM_PROMPT = `
 Você é um assistente virtual especializado em análise de receituários médicos e medicamentos.
 Sua persona é profissional, empática e precisa.
+
+FERRAMENTA DISPONÍVEL:
+
+get_medication_context: Busca informações técnicas sobre medicamentos no banco ANVISA
+- Use quando precisar de informações específicas sobre medicamentos (bula, posologia, indicações, contraindicações)
+- Exemplos de quando usar: "para que serve dipirona?", "qual a dose de paracetamol?", "posso tomar ibuprofeno?"
+- NÃO use para saudações simples como "oi", "obrigado", "tudo bem?"
+- Analise o contexto da conversa: se o usuário perguntar "para que serve isso?" e já falaram de um medicamento antes, use a ferramenta
 
 GUARDRAILS (Regras de segurança):
 1. NÃO faça diagnósticos médicos. Se o usuário descrever sintomas, recomende procurar um médico.
@@ -49,6 +57,10 @@ EXEMPLO DE FORMATAÇÃO CORRETA (sem asteriscos):
  */
 export async function askGemini(prompt, chatId) {
   try {
+    const mcpClient = await getMCPClient();
+    const mcpTools = mcpClient.getToolsForLangChain();
+    const modelWithTools = model.bindTools(mcpTools);
+
     let messages = await loadChatHistory(chatId);
 
     if (messages.length === 0) {
@@ -56,26 +68,46 @@ export async function askGemini(prompt, chatId) {
       await saveChatMessage(chatId, 'system', SYSTEM_PROMPT);
     }
 
-    const relevantContext = await retrieveRelevantContext(prompt);
-    const contextText = formatContextForPrompt(relevantContext);
-
-    let enrichedPrompt = prompt;
-    if (contextText) {
-      enrichedPrompt = `${prompt}${contextText}\n\nUtilize o contexto acima das bulas da ANVISA para responder com precisão.`;
-    }
-
-    messages.push(new HumanMessage(enrichedPrompt));
+    messages.push(new HumanMessage(prompt));
     await saveChatMessage(chatId, 'human', prompt);
 
-    const response = await model.invoke(messages);
-    const responseText = response.content;
+    const response = await modelWithTools.invoke(messages);
+
+    if (response.tool_calls && response.tool_calls.length > 0) {
+
+      for (const toolCall of response.tool_calls) {
+        const toolName = toolCall.name;
+        const toolArgs = toolCall.args;
+
+        console.log(`Chamando tool: ${toolName}`, toolArgs); // TODO podemos adicionar uma TOOL para guardrails
+
+        const toolResult = await mcpClient.callTool(toolName, toolArgs);
+        const toolResultText = toolResult.content?.[0]?.text || JSON.stringify(toolResult);
+
+        console.log(`Resultado da tool: ${toolResultText}`);
+
+        messages.push(response);
+        messages.push(new HumanMessage(`Resultado da ferramenta ${toolName}: ${toolResultText}`));
+      }
+
+      const finalResponse = await modelWithTools.invoke(messages); // Enriquecer a resposta com o resultado da tool
+      const responseText = typeof finalResponse.content === 'string'
+        ? finalResponse.content
+        : JSON.stringify(finalResponse.content);
+
+      await saveChatMessage(chatId, 'ai', responseText);
+      return responseText;
+    }
+
+    const responseText = typeof response.content === 'string'
+      ? response.content
+      : JSON.stringify(response.content);
 
     await saveChatMessage(chatId, 'ai', responseText);
-
     return responseText;
 
   } catch (error) {
-    console.error("Erro ao chamar Gemini (LangChain):", error);
+    console.error("Erro LangChain:", error);
     return "Desculpe, ocorreu um erro ao processar sua solicitação.";
   }
 }

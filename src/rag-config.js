@@ -16,8 +16,10 @@ const pool = new Pool({
 });
 
 export function getEmbeddingModel() {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+
   return new GoogleGenerativeAIEmbeddings({
-    apiKey: process.env.GEMINI_API_KEY,
+    apiKey: apiKey,
     modelName: "text-embedding-004",
   });
 }
@@ -63,9 +65,9 @@ export async function initializeDatabase() {
       USING hnsw (embedding vector_cosine_ops)
     `);
 
-    console.log('Database initialized successfully for RAG');
+    console.log('Banco de dados RAG inicializado com sucesso.');
   } catch (error) {
-    console.error('Error initializing database:', error);
+    console.error('Erro:', error);
     throw error;
   } finally {
     client.release();
