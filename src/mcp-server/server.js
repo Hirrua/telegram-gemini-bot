@@ -1,17 +1,12 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  ListToolsRequestSchema,
-  CallToolRequestSchema
-} from '@modelcontextprotocol/sdk/types.js';
-import {
-  getMedicationContextTool,
-  handleGetMedicationContext
-} from './tools/get-medication-context.js';
+import { z } from 'zod';
+import { handleGetMedicationContext } from './tools/get-medication-context.js';
+import { fileURLToPath } from 'url';
 
 export class MCPMedicationServer {
   constructor() {
-    this.server = new Server(
+    this.server = new McpServer(
       {
         name: 'telegram-medical-bot-medication',
         version: '1.0.0'
@@ -23,58 +18,53 @@ export class MCPMedicationServer {
       }
     );
 
-    this.setupHandlers();
+    this.setupTools();
   }
 
-  setupHandlers() {
+  setupTools() {
+    this.server.registerTool(
+      'get_medication_context',
+      {
+        description: 'Busca informações sobre medicamentos no banco de conhecimento ANVISA. Use esta ferramenta quando precisar de informações técnicas sobre medicamentos para responder o usuário.',
+        inputSchema: z.object({
+          query: z.string().describe('Pergunta ou termo de busca sobre medicamento/remédios')
+        })
+      },
+      async (args) => {
+        try {
+          console.error(`(MCP) Tool chamada: get_medication_context`);
+          console.error(`(MCP) Args: ${JSON.stringify(args, null, 2)}`);
 
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [getMedicationContextTool]
-      };
-    });
+          const result = await handleGetMedicationContext(args);
 
+          console.error(`(MCP) Resultado: ${JSON.stringify(result, null, 2)}`);
 
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify(result, null, 2)
+              }
+            ]
+          };
+        } catch (error) {
+          console.error(`(MCP) Erro ao chamar tool:`, error);
 
-      try {
-        let result;
-
-        if (name === 'get_medication_context') {
-          result = await handleGetMedicationContext(args);
-        } else {
-          throw new Error(`Tool desconhecida: ${name}`);
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify({
+                  error: error.message,
+                  stack: error.stack
+                })
+              }
+            ],
+            isError: true
+          };
         }
-
-        console.error(`(MCP) Tool chamada: ${name}`);
-        console.error(`(MCP) Resultado: ${JSON.stringify(result, null, 2)}`);
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
-        };
-      } catch (error) {
-        console.error(`(MCP) Erro ao chamar tool ${name}:`, error);
-
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                error: error.message,
-                stack: error.stack
-              })
-            }
-          ],
-          isError: true
-        };
       }
-    });
+    );
   }
 
   async start() {
@@ -82,4 +72,12 @@ export class MCPMedicationServer {
     await this.server.connect(transport);
     console.error('(MCP) Servidor remédios iniciado');
   }
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const server = new MCPMedicationServer();
+  server.start().catch((err) => {
+    console.error('Erro fatal no servidor MCP:', err);
+    process.exit(1);
+  });
 }

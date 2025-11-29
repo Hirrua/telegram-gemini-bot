@@ -71,7 +71,7 @@ class MCPClientManager {
 
       return result;
     } catch (error) {
-      console.error(`[MCP Client] Erro ao chamar tool ${toolName}:`, error);
+      console.error(`(MCP client) Erro ao chamar tool ${toolName}:`, error);
       throw error;
     }
   }
@@ -112,9 +112,9 @@ class MCPClientManager {
         await this.transport.close();
       }
       this.isConnected = false;
-      console.log('[MCP Client] Desconectado');
+      console.log('(MCP client) Desconectado');
     } catch (error) {
-      console.error('[MCP Client] Erro ao desconectar:', error);
+      console.error('(MCP client) Erro ao desconectar:', error);
     }
   }
 }

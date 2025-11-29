@@ -12,7 +12,7 @@ services:
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d medicoaqui"]
+      test: ["CMD-SHELL", "pg_isready -U telegram_bot -d telegram_bot"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -38,6 +38,11 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+      - apparmor:unconfined
     depends_on:
       postgres:
         condition: service_healthy
