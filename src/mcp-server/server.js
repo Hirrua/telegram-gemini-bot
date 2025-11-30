@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { handleGetMedicationContext } from './tools/get-medication-context.js';
+import { handleCheckInput, handleCheckOutput } from './tools/guardrails.js';
 import { fileURLToPath } from 'url';
 
 export class MCPMedicationServer {
@@ -63,6 +64,34 @@ export class MCPMedicationServer {
             isError: true
           };
         }
+      }
+    );
+    this.server.registerTool(
+      'check_input',
+      {
+        description: 'ANALISADOR DE SEGURANÇA (ENTRADA): Verifica intenção do usuário. Use no início.',
+        inputSchema: z.object({
+          userMessage: z.string().describe('A mensagem original enviada pelo usuário')
+        })
+      },
+      async (args) => {
+        console.error(`(MCP) Tool chamada: check_input`);
+        const result = await handleCheckInput(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
+      }
+    );
+    this.server.registerTool(
+      'check_output',
+      {
+        description: 'ANALISADOR DE SEGURANÇA (SAÍDA): Verifica a resposta final. Use antes de finalizar.',
+        inputSchema: z.object({
+          draftResponse: z.string().describe('A resposta candidata')
+        })
+      },
+      async (args) => {
+        console.error(`(MCP) Tool chamada: check_output`);
+        const result = await handleCheckOutput(args);
+        return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] };
       }
     );
   }

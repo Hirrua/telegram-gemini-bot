@@ -8,11 +8,7 @@ const { Pool } = pg;
 const EMBEDDING_DIMENSION = 768;
 
 const pool = new Pool({
-  host: process.env.POSTGRES_HOST || 'localhost',
-  port: parseInt(process.env.POSTGRES_PORT || '5433'),
-  database: process.env.POSTGRES_DB || 'telegram_bot',
-  user: process.env.POSTGRES_USER || 'telegram_bot',
-  password: process.env.POSTGRES_PASSWORD || 'telegram_bot_password',
+  connectionString: process.env.DATABASE_URL,
 });
 
 export function getEmbeddingModel() {
@@ -29,11 +25,7 @@ export async function getPgVectorStore() {
 
   const config = {
     postgresConnectionOptions: {
-      host: process.env.POSTGRES_HOST || 'localhost',
-      port: parseInt(process.env.POSTGRES_PORT || '5433'),
-      database: process.env.POSTGRES_DB || 'telegram_bot',
-      user: process.env.POSTGRES_USER || 'telegram_bot',
-      password: process.env.POSTGRES_PASSWORD || 'telegram_bot_password',
+      connectionString: process.env.DATABASE_URL,
     },
     tableName: 'Embedding',
     columns: {
