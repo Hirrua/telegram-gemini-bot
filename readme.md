@@ -1,8 +1,6 @@
 <h1 align="center">ChatBot AI Prescriptions</h1>
 
-# :memo: ChatBot de ajuda com receitas medicas.
-
-# :heavy_check_mark: Badges
+> ChatBot de ajuda com receitas medicas.
 
 ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
 ![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
@@ -17,6 +15,11 @@
 * Node;
 * Docker;
 * PostgreSQL;
+* LangChain;
+* MCP;
+* RAG;
+* API Telegram;
+* API Gemini;
 
 ## Dependências
 
@@ -28,11 +31,23 @@
 ### Clonando e preparando repositório
 1. Clone o repositório:
     ```sh
-    $ git clone https://github.com/Hirrua/telegram-gemini-bot.git projectname
+    $ git clone https://github.com/Hirrua/telegram-gemini-bot.git
     ```
 
-2. Criando arquivo `.env`:
-Você pode fazer uma cópia a partir do `.env.example` e preencher as chaves
+### Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+
+```env
+# Telegram
+TELEGRAM_BOT_TOKEN=seu_token_aqui
+
+# Google Gemini
+GEMINI_API_KEY=sua_api_key_aqui
+
+# Database
+DATABASE_URL=postgresql://telegram_bot:telegram_bot_password@postgres:5432/telegram_bot
+```
 
 ### :whale: Instalação por Docker (recomendada):
 
@@ -41,7 +56,7 @@ Você pode fazer uma cópia a partir do `.env.example` e preencher as chaves
 
 2. Executando docker:
     ```sh
-    $ docker-compose -f docker-compose.yml up
+    $ docker-compose up -d
     ```
 
 #### Executando comandos com docker:
@@ -50,34 +65,86 @@ Caso você precise executar alguma coisa e esteja utilizando docker, você preci
 $ docker exec -it telegram-bot-postgres bash
 ```
 
-### :rocket: Instalação alternativa:
-1. Instalar dependências e criando ambiente:
+### Criar os Embeddings (IMPORTANTE)
 
-    ```sh
-    $ cd projectname
-    $ npm i # cria ambiente node_modules
-    ```
+**Após subir os containers, você precisa executar o processo de ingest para criar os embeddings dos documentos.**
 
-3. Executando a aplicação:
+Este comando deve ser executado **dentro do container** da aplicação:
 
-    ```sh
-    $ node index.js /# executa o projeto com as envs configuradas
-    ```
+```bash
+docker exec -it telegram-bot-app npm run ingest:docker
+```
 
-### Observação sobre Docker Compose
-Ao executar o projeto com `docker-compose -f docker-compose.yml up`, ele será exeutado.
+**O que este comando faz:**
+- Processa os PDFs da pasta `anvisa/`
+- Cria chunks dos documentos usando RecursiveCharacterTextSplitter do LangChain
+- Gera embeddings utilizando o modelo `text-embedding-004` do Google Gemini
+- Armazena os vetores no PostgreSQL com pgvector
+- Permite que o bot faça buscas semânticas nos documentos
 
-## :on: Formatação de código
+**Quando executar:**
+- Na primeira vez que subir o projeto
+- Sempre que adicionar novos PDFs na pasta `anvisa/`
+- Sempre que atualizar documentos existentes
 
-### Ferramentas utilizadas:
-Usamos algumas ferramentas para manter um certo padrão de código entre os desenvolvedores, sendo elas:
-- eslit: Formatação de código
+### 4. Verificar se está funcionando
 
-## 💪 Como contribuir para o projeto
- 
-1. Crie uma nova branch a partir da `main` com as suas alterações:
-   1. `git checkout main`
-   2. `git pull origin main`
-   3. `git checkout -b {release_name}`
-2. Salve as alterações e crie uma mensagem de commit contando o que você fez: `git commit -m "feature: My new feature"`
-3. Envie as suas alterações: `git push origin {release_name}`
+Verifique os logs do container:
+
+```bash
+docker logs -f telegram-bot-app
+```
+
+## Scripts Disponíveis
+
+### Para uso com Docker:
+
+```bash
+# Subir os containers
+docker-compose up -d
+
+# Ver logs
+docker logs -f telegram-bot-app
+
+# Executar ingest dentro do container
+docker exec -it telegram-bot-app npm run ingest:docker
+
+# Parar os containers
+docker-compose down
+
+# Parar e remover volumes
+docker-compose down -v
+```
+
+### Para desenvolvimento local:
+
+```bash
+# Instalar dependências
+npm install
+
+# Executar em modo desenvolvimento
+npm run dev
+
+# Executar ingest local
+npm run ingest
+
+# Iniciar normalmente
+npm start
+```
+
+## Acesso ao Banco de Dados
+
+### Adminer (Interface Web)
+- URL: http://localhost:8080
+- Sistema: PostgreSQL
+- Servidor: postgres
+- Usuário: telegram_bot
+- Senha: telegram_bot_password
+- Base de dados: telegram_bot
+
+### Conexão direta
+- Host: localhost
+- Porta: 5433
+- Usuário: telegram_bot
+- Senha: telegram_bot_password
+- Database: telegram_bot
